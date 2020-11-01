@@ -22,7 +22,7 @@ function importStorage() {
 		if(confirm("データをロードします本当によろしいですか? 現在のプロトコル:" + location.protocol)) {
 			let store = JSON.parse(document.getElementById("ss").value);
 			let overwrite = document.getElementById("allImport").checked;
-			importLocalStorage(store, overwrite);
+			importLocalStorage(store, overwrite, true);
 			alert("データの読み込みが完了しました");
 		}
 	} catch(e) {
@@ -43,11 +43,16 @@ function exportLocalStorage() {
 	return store;
 }
 
-function importLocalStorage(store, overwrite) {
+function importLocalStorage(store, overwrite, convertPrefix) {
 	let names = Object.getOwnPropertyNames(store);
 	for(let i in names) {
-		if(overwrite || localStorage.getItem(names[i]) === null) {
-			localStorage.setItem(names[i], store[names[i]]);
+		let key = names[i];
+		if(convertPrefix) {
+			key = key.replace(/^http:/, "https:"); 
+		}
+		if(overwrite || localStorage.getItem(key) === null) {
+
+			localStorage.setItem(key, store[names[i]]);
 		}
 	}
 }

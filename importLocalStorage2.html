@@ -58,11 +58,16 @@ function visibleButton()
 	document.getElementById("warn").style.display = "none";
 }
 
-function importLocalStorage(store, overwrite) {
+function importLocalStorage(store, overwrite, convertPrefix) {
 	let names = Object.getOwnPropertyNames(store);
 	for(let i in names) {
-		if(overwrite || localStorage.getItem(names[i]) === null) {
-			localStorage.setItem(names[i], store[names[i]]);
+		let key = names[i];
+		if(convertPrefix) {
+			key = key.replace(/^http:/, "https:"); 
+		}
+		if(overwrite || localStorage.getItem(key) === null) {
+
+			localStorage.setItem(key, store[names[i]]);
 		}
 	}
 }
@@ -108,7 +113,7 @@ if(location.protocol === "http:") {
 		win.close();
 		if(mode === "import") {
 			let importAll = document.getElementById("allImport").checked;
-			importLocalStorage(m.data, importAll);
+			importLocalStorage(m.data, importAll, true);
 			alert("データのインポートが完了しました");
 		} else if(mode === "show") {
 			let names = Object.getOwnPropertyNames(m.data);

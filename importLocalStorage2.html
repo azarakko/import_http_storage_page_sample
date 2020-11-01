@@ -1,0 +1,126 @@
+<html>
+<header>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</header>
+<body>
+
+<div id="buttonItem" style="display:none;">
+httpsのlocalstorageをhttpsのlocalstorageで上書きします.<br>
+処理を実行するとポップアップが開きます。ポップアップは許可してください<br />
+<input type="button" value="データ表示" onclick="showStorage()" />
+<input type="button" value="インポート" onclick="importStorage()" />
+<input type="checkbox" id="allImport" value="httpsのデータをhttpのデータで上書きする"  />httpsのデータをhttpのデータですべて上書きする<br />
+<textarea id="ss" rows="20" cols="100">
+</textarea>
+</div>
+<div id="warn">
+httpでアクセスしている可能性があります。
+httpsでアクセスしてください。
+</div>
+※このページはhttps/http両方でアクセスできる必要があります
+<script>
+"strict";
+var mode = "";
+var importAll = false;
+var win = null;
+var executed = true;
+function importStorage()
+{
+	mode = "import";
+	executeMessaging();
+}
+function showStorage()
+{
+	mode = "show";
+	executeMessaging();
+}
+
+function executeMessaging() {
+	executed = false;
+	let inlineLocation = location.href.replace(/^https:/, "http:");
+	win = window.open(inlineLocation, null, "width=10,height=10");
+	win.postMessage("ping", "*");
+	let id = setInterval(
+		function () {
+			if(executed) {
+				clearInterval(id);
+				return;
+			}
+			win.postMessage("ping", "*");
+		},
+		100
+	);
+}
+
+function visibleButton()
+{
+	document.getElementById("buttonItem").style.display = "block";
+	document.getElementById("warn").style.display = "none";
+}
+
+function importLocalStorage(store, overwrite) {
+	let names = Object.getOwnPropertyNames(store);
+	for(let i in names) {
+		if(overwrite || localStorage.getItem(names[i]) === null) {
+			localStorage.setItem(names[i], store[names[i]]);
+		}
+	}
+}
+function dumpStorage() {
+	document.getElementById("ss").value = JSON.stringify(exportLocalStorage());
+	alert("テキストボックスにデータを入力しました");
+}
+
+function exportLocalStorage() {
+	let store = {};
+	let names = Object.getOwnPropertyNames(window.localStorage);
+	for(let i in names) {
+		store[names[i]] = window.localStorage[names[i]];
+	}
+	return store;
+}
+
+if(location.protocol === "http:") {
+	//送り側
+	window.addEventListener("message", (m) => {
+		if(m.data === "ping") {
+			m.source.postMessage(null, m.origin);
+		} else if (m.data === "dump") {
+			let store = exportLocalStorage();
+			m.source.postMessage(store, m.origin);
+		}
+	});
+} else if(location.protocol === "https:"){
+	window.onload = visibleButton;
+	//受け側
+	window.addEventListener("message", (m) => {
+		if(executed) {
+			//処理済み
+			return;
+		}
+		if(m.data === null) {
+			//本処理実行
+			win.postMessage("dump", "*");
+			return;
+		}
+		//処理済みフラグを立てる
+		executed = true;
+		win.close();
+		if(mode === "import") {
+			let importAll = document.getElementById("allImport").checked;
+			importLocalStorage(m.data, importAll);
+			alert("データのインポートが完了しました");
+		} else if(mode === "show") {
+			let names = Object.getOwnPropertyNames(m.data);
+			let text = "";
+			for(let i in names) {
+				text = text + names[i] + ":" + m.data[names[i]] + "\n";
+			}
+			document.getElementById("ss").value = text;
+			alert("テキストボックスにデータを入力しました");
+		}
+	});
+}
+</script>
+</body>
+</html>

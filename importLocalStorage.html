@@ -1,0 +1,78 @@
+<html>
+<header>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</header>
+<body>
+
+<div id="buttonItem" style="display:none;">
+httpsのlocalstorageをhttpsのlocalstorageで上書きします.<br>
+<input type="button" value="データ表示" onclick="showStorage()" />
+<input type="button" value="インポート" onclick="importStorage()" />
+<input type="checkbox" id="allImport" value="httpsのデータをhttpのデータで上書きする"  />httpsのデータをhttpのデータですべて上書きする<br />
+<textarea id="ss" rows="20" cols="100">
+</textarea>
+</div>
+<div id="warn">
+httpでアクセスしている可能性があります。
+httpsでアクセスしてください。
+</div>
+※このページはhttps/http両方でアクセスできる必要があります
+<script>
+"strict";
+var mode = "";
+var importAll = false;
+function importStorage()
+{
+	mode = "import";
+	importAll = document.getElementById("allImport").checked;
+	window.frames["http"].postMessage("", "*");
+}
+function showStorage()
+{
+	mode = "show";
+	window.frames["http"].postMessage("", "*");
+}
+
+function visibleButton()
+{
+	document.getElementById("buttonItem").style.display = "block";
+	document.getElementById("warn").style.display = "none";
+}
+
+if(location.protocol === "http:") {
+	//送り側
+	window.addEventListener("message", (m) => {
+		let store = {};
+		let names = Object.getOwnPropertyNames(window.localStorage);
+		for(let i in names) {
+			store[names[i]] = window.localStorage[names[i]];
+		}
+		m.source.postMessage(store, m.origin);
+	});
+} else if(location.protocol === "https:"){
+	let inlineLocation = location.href.replace(/^https:/, "http:");
+	document.write("<iframe name='http' src='" + inlineLocation + "' style='display:none' onload='visibleButton()' />");
+	//受け側
+	window.addEventListener("message", (m) => {
+		if(mode === "import") {
+			let names = Object.getOwnPropertyNames(m.data);
+			for(let i in names) {
+				if(importAll || localStorage.getItem(names[i]) === null) {
+					localStorage.setItem(names[i], m.data[names[i]]);
+				}
+			}
+			alert("データのインポートが完了しました");
+		} else if(mode === "show") {
+			let names = Object.getOwnPropertyNames(m.data);
+			let text = "";
+			for(let i in names) {
+				text = text + names[i] + ":" + m.data[names[i]] + "\n";
+			}
+			document.getElementById("ss").value = text;
+			alert("テキストボックスにデータを入力しました");
+		}
+	});
+}
+</script>
+</body>
+</html>
